@@ -1,0 +1,16 @@
+{C:/Users/dell/Desktop/eda project/TB.v} {1 {vlog -work work -vopt -stats=none {C:/Users/dell/Desktop/eda project/TB.v}
+QuestaSim-64 vlog 10.6c Compiler 2017.07 Jul 26 2017
+-- Compiling module testbench
+
+Top level modules:
+	testbench
+
+} {} {}} {C:/Users/dell/Desktop/eda project/DRIVER.v} {1 {vlog -work work -vopt -stats=none {C:/Users/dell/Desktop/eda project/DRIVER.v}
+QuestaSim-64 vlog 10.6c Compiler 2017.07 Jul 26 2017
+-- Compiling module DB
+-- Compiling module ATM
+
+Top level modules:
+	ATM
+
+} {} {}}

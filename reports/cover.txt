@@ -1,0 +1,560 @@
+ =================================================================================
+# === File: DRIVER.v
+# =================================================================================
+# Statement Coverage:
+#     Enabled Coverage            Active      Hits    Misses % Covered
+#     ----------------            ------      ----    ------ ---------
+#     Stmts                           79        79         0     100.0
+# 
+# ================================Statement Details================================
+# 
+# Statement Coverage for file DRIVER.v --
+# 
+#     1                                                `define true 1'b1
+#     2                                                `define false 1'b0
+#     3                                                
+#     4                                                
+#     5                                                `define WAITING               3'b000
+#     6                                                `define LANGUAGE              3'b001
+#     7                                                `define MENU                  3'b010
+#     8                                                `define IDLE                  3'b011
+#     9                                                `define CHANGEPIN             3'b100
+#     10                                               `define WITHDRAW_SHOW_BALANCE 3'b101
+#     11                                               `define BALANCE               3'b110
+#     12                                               `define DEPOSIT               3'b111
+#     13                                               
+#     14                                               `define English 1'b1
+#     15                                               `define Spanish 1'b0
+#     16                                               
+#     17                                               module DB (
+#     18                                                   input [2:0] accNumber,
+#     19                                                   input [12:0] pin,
+#     20                                                   input [12:0] newpin,
+#     21                                                   output reg wasSuccessful,
+#     22                                                   output reg [2:0] accIndex
+#     23                                               );
+#     24                                                 reg[2:0] i;
+#     25                                                 reg [2:0] acc_database [0:4];
+#     26                                                 reg [12:0] pin_database [0:4];
+#     27                                               
+#     28                                                 initial begin
+#     29              1                          1         acc_database[0] = 4'd1; pin_database[0] = 13'd1000;
+#     29              2                          1     
+#     30              1                          1         acc_database[1] = 4'd2; pin_database[1] = 13'd1001;
+#     30              2                          1     
+#     31              1                          1         acc_database[2] = 4'd3; pin_database[2] = 13'd1010;
+#     31              2                          1     
+#     32              1                          1         acc_database[3] = 4'd4; pin_database[3] = 13'd8000;
+#     32              2                          1     
+#     33              1                          1         acc_database[4] = 4'd5; pin_database[4] = 13'd1100;
+#     33              2                          1     
+#     34                                                 end
+#     35                                               
+#     36                                                
+#     37                                                 
+#     38                                               
+#     39                                               
+#     40              1                         25       always @(accNumber or pin or newpin) begin
+#     41                                                    
+#     42              1                         25         wasSuccessful = `false;
+#     43              1                         25         accIndex = 0;
+#     44                                                
+#     45                                                   // Loop through the database
+#     46              1                         25         for (i = 0; i < 5; i = i + 1) begin
+#     46              2                        125     
+#     47                                                     // Found a match for accNumber
+#     48                                                     if (accNumber == acc_database[i]) begin
+#     49                                                       
+#     50                                                         if (pin == pin_database[i]) begin
+#     51              1                         20                 wasSuccessful = `true;
+#     52              1                         20                 accIndex = i;
+#     53                                                           if(newpin !=0)begin
+#     54              1                          1                   pin_database[i]=newpin;
+#     55                                                           end
+#     56                                                         end
+#     57                                                     end 
+#     58                                                   end
+#     59                                               
+#     60                                                 end
+#     61                                                
+#     62                                                 
+#     63                                               endmodule
+#     64                                               
+#     65                                               module ATM(
+#     66                                                 input clk,
+#     67                                                 input lan,
+#     68                                                 input rst,
+#     69                                                 input [2:0] accNumber,
+#     70                                                 input [12:0] pin,
+#     71                                                 input [12:0] newpin,
+#     72                                                 input [2:0] menuOption,
+#     73                                                 input [15:0] amount,
+#     74                                                 output reg error,
+#     75                                                 output reg Language,
+#     76                                                 output reg [15:0] balance
+#     77                                               );
+#     78                                               
+#     79                                                 // Initializing the balance database with an arbitrary amount of money
+#     80                                                 reg [15:0] balance_database [0:4];
+#     81                                                 initial begin
+#     82              1                          1         balance_database[0] = 16'd500;
+#     83              1                          1         balance_database[1] = 16'd500;
+#     84              1                          1         balance_database[2] = 16'd500;
+#     85              1                          1         balance_database[3] = 16'd65000;
+#     86              1                          1         balance_database[4] = 16'd500;
+#     87                                                 end
+#     88                                                 integer fd;
+#     89                                                 reg [2:0] t;
+#     90              1                          1       reg [2:0] currState = `IDLE;
+#     91              1                          1       reg [2:0] next_state = `WAITING;
+#     92                                                 wire [2:0] accIndex;
+#     93                                                 wire isAuthenticated;
+#     94                                                 reg woh;
+#     95                                                reg[1:0] counter;
+#     96                                               
+#     97                                                 DB authAccNumberModule(accNumber, pin,newpin, isAuthenticated, accIndex);
+#     98                                               
+#     99              1                        128       always @(posedge clk or negedge rst) begin
+#     100                                                if (!rst) begin
+#     101             1                          4        currState <= `IDLE;
+#     102                                                end
+#     103                                                else begin
+#     104             1                        124         currState <= next_state;
+#     105                                                end
+#     106                                              end
+#     107             1                        149     always@(posedge clk)begin
+#     108                                                
+#     109             1                        149       counter=counter+1;
+#     110                                                if(counter==3)begin
+#     111             1                          8         error=1;
+#     112             1                          8         next_state=`WAITING;
+#     113                                                end
+#     114                                              end
+#     115                                              
+#     116                                              
+#     117             1                        167       always @(currState or menuOption or  accNumber  or  lan or pin  or amount or isAuthenticated) begin 
+#     118             1                        167         counter=0;
+#     119                                                  if(isAuthenticated==`false)begin
+#     120             1                         10           currState=`WAITING;
+#     121             1                         10           balance=16'b0 ;
+#     122             1                         10           error=1;
+#     123                                                  end
+#     124                                               
+#     125                                                  case (currState)
+#     126                                                    `WAITING: begin
+#     127                                                      
+#     128                                                      if (isAuthenticated == `true) begin
+#     129             1                         39                  woh=1;
+#     130             1                         39               next_state = `LANGUAGE;
+#     131                                                      end
+#     132                                                      else  begin
+#     133             1                         10                 woh=0;
+#     134             1                         10                 error=1;
+#     135             1                         10               next_state = `WAITING;
+#     136                                                      end
+#     137                                                    end
+#     138                                              
+#     139                                               
+#     140                                                    `LANGUAGE: begin
+#     141                                                    
+#     142                                                      if (lan == `English) begin
+#     143                                                          
+#     144             1                          9               Language = `English;
+#     145                                                      end
+#     146                                                       else begin
+#     147             1                         21               Language = `Spanish;
+#     148                                                      end
+#     149             1                         30             next_state = `MENU;
+#     150                                                      
+#     151                                                    end
+#     152                                              
+#     153                                                    `MENU:begin
+#     154                                                    
+#     155                                                       if ((menuOption >= 4)) begin
+#     156             1                         31             next_state = menuOption;
+#     157                                                    end else 
+#     158             1                          1             currState = currState;
+#     159                                                     
+#     160                                                    end
+#     161                                              
+#     162                                                    `BALANCE: begin
+#     163                                                      if(woh==`true)begin
+#     164             1                         10             error=0;
+#     165             1                         10             balance = balance_database[accIndex];
+#     166             1                         10             woh=`false;
+#     167             1                         10             next_state = `WAITING;
+#     168                                                      end else begin
+#     169             1                          6               next_state=`WAITING;
+#     170                                                      end
+#     171                                                      
+#     172                                              
+#     173                                                    end
+#     174                                                    `CHANGEPIN:begin
+#     175             1                          9             balance = balance_database[accIndex];
+#     176             1                          9             error=`false;
+#     177             1                          9              next_state=`WAITING;
+#     178                                                    end
+#     179                                              
+#     180                                                    `WITHDRAW_SHOW_BALANCE: begin
+#     181                                                      if(woh==`true)begin
+#     182                                                      if (amount <= balance_database[accIndex]) begin
+#     183             1                          5               balance_database[accIndex] = balance_database[accIndex] - amount;
+#     184             1                          5               balance = balance_database[accIndex];
+#     185             1                          5              next_state = `WAITING;
+#     186             1                          5              woh=`false;
+#     187             1                          5               error = `false;
+#     188                                                      end else begin
+#     189             1                          3               next_state= `WAITING;
+#     190             1                          3               balance = balance_database[accIndex];
+#     191             1                          3               error = `true;
+#     192             1                          3               woh=`false;
+#     193                                                      end
+#     194                                                      end else begin
+#     195             1                          6               next_state=`WAITING;
+#     196                                                      end
+#     197                                                    end
+#     198                                              
+#     199                                                    `DEPOSIT:begin
+#     200                                                      if(woh==1)begin
+#     201             1                          6               balance_database[accIndex] = balance_database[accIndex] + amount;
+#     202             1                          6               balance = balance_database[accIndex];
+#     203             1                          6               next_state = `WAITING;
+#     204             1                          6               woh=0;
+#     205             1                          6               error = `false;
+#     206                                                      end else begin
+#     207             1                          6               next_state=`WAITING;
+#     208                                                      end
+#     209                                              
+#     210                                                    end
+#     211                                              
+#     212                                                    default:begin
+#     213             1                          5             balance=16'bx ;
+#     214             1                          5             error=0;
+#     215             1                          5             next_state=`WAITING;
+#     216                                                    end
+#     217                                              
+#     218                                                  endcase
+#     219             1                        167         fd=$fopen("balances.txt","w");
+#     220             1                        167     for(t=0;t<5;t=t+1)begin
+#     220             2                        835     
+#     221             1                        835       $fwrite(fd,"%d\n",balance_database[t]);
+#     222                                              end
+#     223             1                        167     $fclose(fd);
+#     224                                              
+#     225                                              
+#     226                                                 end 
+#     227                                              
+#     228                                                  //  psl show_balance: assert always((currState == 2 && menuOption == 6 && woh==1) -> next(balance == balance_database[prev(accIndex)] )) @(posedge clk);
+#     229                                                  //  psl show_state: assert always(((currState == 6 ||currState == 7 ||currState == 5) ) -> next(currState == `WAITING   )) @(negedge clk);
+#     230                                                  //  psl show_Woh: assert always((woh==0)&&(currState == 6 ||currState == 7 ||currState == 5) -> balance == balance_database[prev(accIndex)] ) @(posedge clk);
+#     231                                                  //  psl show_Draw: assert always((currState == 5 &&  amount > balance_database[accIndex]&&rst==1) -> next(balance == balance_database[prev(accIndex)] )) @(negedge clk);
+#     232                                                  //  psl show_Draw_failed: assert always((currState == 5 &&  amount > prev(balance_database[accIndex])&&rst==1) -> error==1) @(negedge clk);
+#     233                                                  // psl show_rst: assert (always(rst==0) -> currState==`IDLE) @(negedge clk);
+#     234                                                  
+#     235                                              endmodule
+# 
+# Branch Coverage:
+#     Enabled Coverage            Active      Hits    Misses % Covered
+#     ----------------            ------      ----    ------ ---------
+#     Branches                        34        34         0     100.0
+# 
+# ================================Branch Details================================
+# 
+# Branch Coverage for file DRIVER.v --
+# 
+# ------------------------------------IF Branch------------------------------------
+#     48                                       125     Count coming in to IF
+#     48              1                         25           if (accNumber == acc_database[i]) begin
+#                                              100     All False Count
+# Branch totals: 2 hits of 2 branches = 100.0%
+# 
+# ------------------------------------IF Branch------------------------------------
+#     50                                        25     Count coming in to IF
+#     50              1                         20               if (pin == pin_database[i]) begin
+#                                                5     All False Count
+# Branch totals: 2 hits of 2 branches = 100.0%
+# 
+# ------------------------------------IF Branch------------------------------------
+#     53                                        20     Count coming in to IF
+#     53              1                          1                 if(newpin !=0)begin
+#                                               19     All False Count
+# Branch totals: 2 hits of 2 branches = 100.0%
+# 
+# ------------------------------------IF Branch------------------------------------
+#     100                                      128     Count coming in to IF
+#     100             1                          4       if (!rst) begin
+#     103             1                        124       else begin
+# Branch totals: 2 hits of 2 branches = 100.0%
+# 
+# ------------------------------------IF Branch------------------------------------
+#     110                                      149     Count coming in to IF
+#     110             1                          8       if(counter==3)begin
+#                                              141     All False Count
+# Branch totals: 2 hits of 2 branches = 100.0%
+# 
+# ------------------------------------IF Branch------------------------------------
+#     119                                      167     Count coming in to IF
+#     119             1                         10         if(isAuthenticated==`false)begin
+#                                              157     All False Count
+# Branch totals: 2 hits of 2 branches = 100.0%
+# 
+# ------------------------------------CASE Branch------------------------------------
+#     125                                      167     Count coming in to CASE
+#     126             1                         49           `WAITING: begin
+#     140             1                         30           `LANGUAGE: begin
+#     153             1                         32           `MENU:begin
+#     162             1                         16           `BALANCE: begin
+#     174             1                          9           `CHANGEPIN:begin
+#     180             1                         14           `WITHDRAW_SHOW_BALANCE: begin
+#     199             1                         12           `DEPOSIT:begin
+#     212             1                          5           default:begin
+# Branch totals: 8 hits of 8 branches = 100.0%
+# 
+# ------------------------------------IF Branch------------------------------------
+#     128                                       49     Count coming in to IF
+#     128             1                         39             if (isAuthenticated == `true) begin
+#     132             1                         10             else  begin
+# Branch totals: 2 hits of 2 branches = 100.0%
+# 
+# ------------------------------------IF Branch------------------------------------
+#     142                                       30     Count coming in to IF
+#     142             1                          9             if (lan == `English) begin
+#     146             1                         21              else begin
+# Branch totals: 2 hits of 2 branches = 100.0%
+# 
+# ------------------------------------IF Branch------------------------------------
+#     155                                       32     Count coming in to IF
+#     155             1                         31              if ((menuOption >= 4)) begin
+#     157             1                          1           end else 
+# Branch totals: 2 hits of 2 branches = 100.0%
+# 
+# ------------------------------------IF Branch------------------------------------
+#     163                                       16     Count coming in to IF
+#     163             1                         10             if(woh==`true)begin
+#     168             1                          6             end else begin
+# Branch totals: 2 hits of 2 branches = 100.0%
+# 
+# ------------------------------------IF Branch------------------------------------
+#     181                                       14     Count coming in to IF
+#     181             1                          8             if(woh==`true)begin
+#     194             1                          6             end else begin
+# Branch totals: 2 hits of 2 branches = 100.0%
+# 
+# ------------------------------------IF Branch------------------------------------
+#     182                                        8     Count coming in to IF
+#     182             1                          5             if (amount <= balance_database[accIndex]) begin
+#     188             1                          3             end else begin
+# Branch totals: 2 hits of 2 branches = 100.0%
+# 
+# ------------------------------------IF Branch------------------------------------
+#     200                                       12     Count coming in to IF
+#     200             1                          6             if(woh==1)begin
+#     206             1                          6             end else begin
+# Branch totals: 2 hits of 2 branches = 100.0%
+# 
+# 
+# Condition Coverage:
+#     Enabled Coverage            Active   Covered    Misses % Covered
+#     ----------------            ------      ----    ------ ---------
+#     FEC Condition Terms              0         0         0     100.0
+# Expression Coverage:
+#     Enabled Coverage            Active   Covered    Misses % Covered
+#     ----------------            ------      ----    ------ ---------
+#     FEC Expression Terms             0         0         0     100.0
+# FSM Coverage:
+#     Enabled Coverage            Active      Hits    Misses % Covered
+#     ----------------            ------      ----    ------ ---------
+#     FSMs                                                       100.0
+#         States                       0         0         0     100.0
+#         Transitions                  0         0         0     100.0
+# Toggle Coverage:
+#     Enabled Coverage            Active      Hits    Misses % Covered
+#     ----------------            ------      ----    ------ ---------
+#     Toggle Bins                    306       230        76      75.1
+# 
+# ================================Toggle Details================================
+# 
+# Toggle Coverage for File DRIVER.v --
+# 
+#        Line                                   Node      1H->0L      0L->1H  "Coverage"
+# --------------------------------------------------------------------------------------
+#          18                           accNumber[2]           1           1      100.00 
+#          18                           accNumber[1]           1           1      100.00 
+#          18                           accNumber[0]           1           1      100.00 
+#          19                                 pin[9]           1           1      100.00 
+#          19                                 pin[8]           1           1      100.00 
+#          19                                 pin[7]           1           1      100.00 
+#          19                                 pin[6]           1           1      100.00 
+#          19                                 pin[5]           1           1      100.00 
+#          19                                 pin[4]           1           1      100.00 
+#          19                                 pin[3]           1           1      100.00 
+#          19                                 pin[2]           1           1      100.00 
+#          19                                 pin[1]           1           1      100.00 
+#          19                                pin[12]           1           1      100.00 
+#          19                                pin[11]           1           1      100.00 
+#          19                                pin[10]           1           1      100.00 
+#          19                                 pin[0]           1           1      100.00 
+#          20                              newpin[9]           1           1      100.00 
+#          20                              newpin[8]           1           1      100.00 
+#          20                              newpin[7]           1           1      100.00 
+#          20                              newpin[6]           1           1      100.00 
+#          20                              newpin[5]           1           1      100.00 
+#          20                              newpin[4]           1           1      100.00 
+#          20                              newpin[3]           1           1      100.00 
+#          20                              newpin[2]           1           1      100.00 
+#          20                              newpin[1]           1           1      100.00 
+#          20                             newpin[12]           1           1      100.00 
+#          20                             newpin[11]           1           1      100.00 
+#          20                             newpin[10]           1           1      100.00 
+#          20                              newpin[0]           1           1      100.00 
+#          21                          wasSuccessful           1           1      100.00 
+#          22                            accIndex[2]           1           1      100.00 
+#          22                            accIndex[1]           1           1      100.00 
+#          22                            accIndex[0]           1           1      100.00 
+#          24                                   i[2]           0           0        0.00 
+#          24                                   i[1]           0           0        0.00 
+#          24                                   i[0]           0           0        0.00 
+#          66                                    clk           1           1      100.00 
+#          67                                    lan           1           1      100.00 
+#          68                                    rst           1           1      100.00 
+#          69                           accNumber[2]           1           1      100.00 
+#          69                           accNumber[1]           1           1      100.00 
+#          69                           accNumber[0]           1           1      100.00 
+#          70                                 pin[9]           1           1      100.00 
+#          70                                 pin[8]           1           1      100.00 
+#          70                                 pin[7]           1           1      100.00 
+#          70                                 pin[6]           1           1      100.00 
+#          70                                 pin[5]           1           1      100.00 
+#          70                                 pin[4]           1           1      100.00 
+#          70                                 pin[3]           1           1      100.00 
+#          70                                 pin[2]           1           1      100.00 
+#          70                                 pin[1]           1           1      100.00 
+#          70                                pin[12]           1           1      100.00 
+#          70                                pin[11]           1           1      100.00 
+#          70                                pin[10]           1           1      100.00 
+#          70                                 pin[0]           1           1      100.00 
+#          71                              newpin[9]           1           1      100.00 
+#          71                              newpin[8]           1           1      100.00 
+#          71                              newpin[7]           1           1      100.00 
+#          71                              newpin[6]           1           1      100.00 
+#          71                              newpin[5]           1           1      100.00 
+#          71                              newpin[4]           1           1      100.00 
+#          71                              newpin[3]           1           1      100.00 
+#          71                              newpin[2]           1           1      100.00 
+#          71                              newpin[1]           1           1      100.00 
+#          71                             newpin[12]           1           1      100.00 
+#          71                             newpin[11]           1           1      100.00 
+#          71                             newpin[10]           1           1      100.00 
+#          71                              newpin[0]           1           1      100.00 
+#          72                          menuOption[2]           1           1      100.00 
+#          72                          menuOption[1]           1           1      100.00 
+#          72                          menuOption[0]           1           1      100.00 
+#          73                              amount[9]           1           1      100.00 
+#          73                              amount[8]           1           1      100.00 
+#          73                              amount[7]           1           1      100.00 
+#          73                              amount[6]           1           1      100.00 
+#          73                              amount[5]           1           1      100.00 
+#          73                              amount[4]           1           1      100.00 
+#          73                              amount[3]           1           1      100.00 
+#          73                              amount[2]           1           1      100.00 
+#          73                              amount[1]           1           1      100.00 
+#          73                             amount[15]           1           1      100.00 
+#          73                             amount[14]           1           1      100.00 
+#          73                             amount[13]           1           1      100.00 
+#          73                             amount[12]           1           1      100.00 
+#          73                             amount[11]           1           1      100.00 
+#          73                             amount[10]           1           1      100.00 
+#          73                              amount[0]           1           1      100.00 
+#          74                                  error           1           1      100.00 
+#          75                               Language           1           1      100.00 
+#          76                             balance[9]           1           1      100.00 
+#          76                             balance[8]           1           1      100.00 
+#          76                             balance[7]           1           1      100.00 
+#          76                             balance[6]           1           1      100.00 
+#          76                             balance[5]           1           1      100.00 
+#          76                             balance[4]           1           1      100.00 
+#          76                             balance[3]           1           1      100.00 
+#          76                             balance[2]           1           1      100.00 
+#          76                             balance[1]           1           1      100.00 
+#          76                            balance[15]           1           1      100.00 
+#          76                            balance[14]           1           1      100.00 
+#          76                            balance[13]           1           1      100.00 
+#          76                            balance[12]           1           1      100.00 
+#          76                            balance[11]           1           1      100.00 
+#          76                            balance[10]           1           1      100.00 
+#          76                             balance[0]           1           1      100.00 
+#          88                                  fd[9]           0           0        0.00 
+#          88                                  fd[8]           0           0        0.00 
+#          88                                  fd[7]           0           0        0.00 
+#          88                                  fd[6]           0           0        0.00 
+#          88                                  fd[5]           0           0        0.00 
+#          88                                  fd[4]           0           0        0.00 
+#          88                                  fd[3]           0           0        0.00 
+#          88                                 fd[31]           0           0        0.00 
+#          88                                 fd[30]           0           0        0.00 
+#          88                                  fd[2]           0           0        0.00 
+#          88                                 fd[29]           0           0        0.00 
+#          88                                 fd[28]           0           0        0.00 
+#          88                                 fd[27]           0           0        0.00 
+#          88                                 fd[26]           0           0        0.00 
+#          88                                 fd[25]           0           0        0.00 
+#          88                                 fd[24]           0           0        0.00 
+#          88                                 fd[23]           0           0        0.00 
+#          88                                 fd[22]           0           0        0.00 
+#          88                                 fd[21]           0           0        0.00 
+#          88                                 fd[20]           0           0        0.00 
+#          88                                  fd[1]           0           0        0.00 
+#          88                                 fd[19]           0           0        0.00 
+#          88                                 fd[18]           0           0        0.00 
+#          88                                 fd[17]           0           0        0.00 
+#          88                                 fd[16]           0           0        0.00 
+#          88                                 fd[15]           0           0        0.00 
+#          88                                 fd[14]           0           0        0.00 
+#          88                                 fd[13]           0           0        0.00 
+#          88                                 fd[12]           0           0        0.00 
+#          88                                 fd[11]           0           0        0.00 
+#          88                                 fd[10]           0           0        0.00 
+#          88                                  fd[0]           0           0        0.00 
+#          89                                   t[2]           0           0        0.00 
+#          89                                   t[1]           0           0        0.00 
+#          89                                   t[0]           0           0        0.00 
+#          90                           currState[2]           1           1      100.00 
+#          90                           currState[1]           1           1      100.00 
+#          90                           currState[0]           1           1      100.00 
+#          91                          next_state[2]           1           1      100.00 
+#          91                          next_state[1]           1           1      100.00 
+#          91                          next_state[0]           1           1      100.00 
+#          92                            accIndex[2]           1           1      100.00 
+#          92                            accIndex[1]           1           1      100.00 
+#          92                            accIndex[0]           1           1      100.00 
+#          93                        isAuthenticated           1           1      100.00 
+#          94                                    woh           1           1      100.00 
+#          95                             counter[1]           1           1      100.00 
+#          95                             counter[0]           1           1      100.00 
+# 
+# Total Node Count     =        153 
+# Toggled Node Count   =        115 
+# Untoggled Node Count =         38 
+# 
+# Toggle Coverage      =       75.1% (230 of 306 bins)
+# 
+# 
+# ASSERTION RESULTS:
+# -------------------------------------------------------
+# Name                 File(Line)           Failure Pass 
+#                                           Count   Count 
+# -------------------------------------------------------
+# /\testbench#atm_inst /show_rst
+#                      DRIVER.v(233)              0     1
+# /\testbench#atm_inst /show_Draw_failed
+#                      DRIVER.v(232)              0     1
+# /\testbench#atm_inst /show_Draw
+#                      DRIVER.v(231)              0     1
+# /\testbench#atm_inst /show_Woh
+#                      DRIVER.v(230)              0     1
+# /\testbench#atm_inst /show_state
+#                      DRIVER.v(229)              0     1
+# /\testbench#atm_inst /show_balance
+#                      DRIVER.v(228)              0     1
+# 
+# Total Coverage By File (code coverage only, filtered view): 91.7%
